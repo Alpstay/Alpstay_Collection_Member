@@ -200,6 +200,11 @@
   li.inherit{font-weight:700;}
   .li-val{color:var(--gold-3);font-weight:700;font-size:12px;}
   .li-promo{display:inline-block;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-3);border:1px solid var(--gold-2);border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
+  .g-benefits{background:var(--row-hover);border:1px solid var(--line-soft);border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+  .g-benefits-h{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-3);font-weight:700;margin-bottom:8px;}
+  .g-benefits ul{list-style:none;margin:0;padding:0;}
+  .g-benefits li{position:relative;padding:5px 0 5px 22px;font-size:13.5px;line-height:1.45;color:var(--ink);}
+  .g-benefits li::before{content:"";position:absolute;left:0;top:11px;width:7px;height:7px;border-radius:50%;background:var(--gold-2);}
   .editor-perks{background:var(--row-hover);border:1px solid var(--line-soft);border-radius:8px;padding:11px 14px;margin:0;}
   .editor-perks li.empty{color:var(--ink-faint);font-style:italic;}
   .editor-perks li.empty::before{display:none;}
@@ -730,7 +735,7 @@ Marco;Bianchi;marco.bianchi@email.com;+39 333 1112233;8</textarea>
     </section>
     <section class="page" id="page-tiers">
       <div class="page-head"><div><span class="eyebrow">Programma fedeltà</span><h2 class="display">Descrizione dei livelli</h2></div><button class="btn btn-gold" onclick="saveTiers()"><span>Salva tutti i livelli</span></button></div>
-      <p class="note" style="margin:0 0 20px;max-width:680px;">Qui imposti <b>tagline</b>, <b>requisito</b> e <b>nota in evidenza</b> di ogni livello. I <b>vantaggi</b> (offerte e promo) non si scrivono qui: si gestiscono in <b>«Offerte»</b> e <b>«Promo»</b> assegnando il <b>target</b> del livello, e compaiono qui sotto in anteprima e nelle pagine pubbliche.</p>
+      <p class="note" style="margin:0 0 20px;max-width:680px;">Queste descrizioni appaiono nelle schede dei livelli (home, pagina di iscrizione e area socio). Modifica i <b>benefit</b> (uno per riga), la <b>tagline</b>, il <b>requisito</b> e la <b>nota in evidenza</b> per rendere ogni livello più desiderabile.</p>
       <div id="tiersEditor"></div>
     </section>
     <section class="page" id="page-nfc">
@@ -944,45 +949,41 @@ Marco;Bianchi;marco.bianchi@email.com;+39 333 1112233;8</textarea>
     c.addEventListener('paste',e=>{e.preventDefault();const d=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,6).split('');d.forEach((n,k)=>{if(cells[k])cells[k].value=n;});cells[Math.min(d.length,5)].focus();});});})();
 
   /* ---------- guest: dashboard ---------- */
+  function levelBenefitsBlock(level){const t=tiers.find(x=>x.key===level);const bs=((t&&t.benefits)||[]);if(!bs.length)return '';return '<div class="g-benefits"><span class="g-benefits-h">Inclusi con la tua tessera '+livLabel(level)+'</span><ul>'+bs.map(b=>'<li>'+esc(b)+'</li>').join('')+'</ul></div>';}
   function renderGuestOffers(){
     const level=(guestMember&&guestMember.livello)||'GOLD';
     const list=offers.filter(o=>o.attiva&&tierVisible(o.target,level));
-    const box=document.getElementById('guestOffers');
-    if(!list.length){box.innerHTML='<p class="g-empty">Al momento non ci sono vantaggi attivi sulla tua tessera. Torna a trovarci presto.</p>';return;}
-    box.innerHTML=list.map(o=>{const v=offerValue(o);return `<div class="g-offer">
+    const offHtml=list.length?list.map(o=>{const v=offerValue(o);return `<div class="g-offer">
       ${o.img?`<img class="g-offer-img" src="${esc(o.img)}" alt="${esc(o.titolo)}">`:''}
       <div class="g-offer-head"><h4>${esc(o.titolo)}</h4>${v?`<span class="g-val">${v}</span>`:''}</div>
       ${o.nota?`<p class="g-note">“${esc(o.nota)}”</p>`:''}
       ${o.desc?`<p class="g-desc">${esc(o.desc)}</p>`:''}
       ${o.limit?`<div class="g-limit"><span class="lab">Condizioni</span><span>${esc(o.limit)}</span></div>`:''}
       ${o.link?`<div class="g-actions"><a class="g-book" href="${esc(o.link)}" target="_blank" rel="noopener">Trova e prenota →</a></div>`:''}
-    </div>`;}).join('');
+    </div>`;}).join(''):'<p class="g-empty">Al momento non ci sono offerte attive sulla tua tessera.</p>';
+    document.getElementById('guestOffers').innerHTML=levelBenefitsBlock(level)+offHtml;
   }
   function renderGuestPromos(){
     const level=(guestMember&&guestMember.livello)||'GOLD';
     const list=promos.filter(p=>p.attiva&&tierVisible(p.target,level));
-    const box=document.getElementById('guestPromos');
-    if(!list.length){box.innerHTML='<p class="g-empty">Nessun codice promo attivo al momento.</p>';return;}
-    box.innerHTML=list.map(p=>`<div class="promo"><div class="promo-left"><div class="promo-desc">${esc(p.desc)}</div>${p.link?`<a class="promo-link" href="${esc(p.link)}" target="_blank" rel="noopener">Vai a prenotare →</a>`:''}</div><div class="promo-reveal"><button class="reveal-btn" onclick="revealPromo(this,'${esc(p.codice)}')">Mostra codice</button></div></div>`).join('');
+    const prHtml=list.length?list.map(p=>`<div class="promo"><div class="promo-left"><div class="promo-desc">${esc(p.desc)}</div>${p.link?`<a class="promo-link" href="${esc(p.link)}" target="_blank" rel="noopener">Vai a prenotare →</a>`:''}</div><div class="promo-reveal"><button class="reveal-btn" onclick="revealPromo(this,'${esc(p.codice)}')">Mostra codice</button></div></div>`).join(''):'<p class="g-empty">Nessun codice promo attivo al momento.</p>';
+    document.getElementById('guestPromos').innerHTML=levelBenefitsBlock(level)+prHtml;
   }
   function revealPromo(btn,code){btn.parentElement.innerHTML='<span class="code">'+esc(code)+'</span><button class="copybtn" onclick="copyCode(this,\''+esc(code)+'\')">Copia</button>';}
   function renderGuestPerks(){
     const lvl=(guestMember&&guestMember.livello)||'GOLD';
-    const order=['SILVER','GOLD','PLATINUM','BLACK'];const i=order.indexOf(lvl);
-    let items=[];
-    if(i>0)items.push('<li class="inherit">Tutti i vantaggi '+livLabel(order[i-1])+'</li>');
-    offers.filter(o=>o.attiva&&(o.target===lvl||(lvl==='SILVER'&&o.target==='TUTTI'))).forEach(o=>{const v=offerValue(o);items.push('<li>'+esc(o.titolo)+(v?' <span class="li-val">'+v+'</span>':'')+'</li>');});
-    promos.filter(p=>p.attiva&&(p.target===lvl||(lvl==='SILVER'&&p.target==='TUTTI'))).forEach(p=>{items.push('<li>'+esc(p.desc)+' <span class="li-promo">Promo</span></li>');});
-    if(!items.length||(i>0&&items.length===1))items.push('<li>Vantaggi in aggiornamento.</li>');
+    const t=tiers.find(x=>x.key===lvl);
+    const benefits=((t&&t.benefits)||[]).map(b=>`<li>${esc(b)}</li>`).join('');
     let html=`<div class="perks-card">
       <div class="perks-head"><span class="tag ${livClass(lvl)}">${livLabel(lvl)}</span><span class="perks-title">I plus della tua tessera</span></div>
-      <ul class="perks-list">${items.join('')}</ul>
+      <ul class="perks-list">${benefits||'<li>Vantaggi in aggiornamento.</li>'}</ul>
     </div>`;
+    const order=['SILVER','GOLD','PLATINUM','BLACK'];const i=order.indexOf(lvl);
     if(lvl==='BLACK'){
       html+=`<p class="nextlvl-top">Sei al vertice del programma Clubcard. Grazie per la tua fedeltà ad Alpstay.</p>`;
     } else if(i>=0&&i<order.length-1){
-      const next=order[i+1];
-      const extra=offers.filter(o=>o.attiva&&o.target===next).map(o=>o.titolo).slice(0,2);
+      const next=order[i+1];const nt=tiers.find(x=>x.key===next);
+      const extra=((nt&&nt.benefits)||[]).filter(b=>!/tutti i vantaggi/i.test(b)).slice(0,2);
       html+=`<div class="nextlvl"><div><span class="nextlvl-k">Sblocca ${livLabel(next)}</span><span class="nextlvl-v">${extra.length?extra.map(esc).join(' · '):'Nuovi vantaggi al prossimo livello'}</span></div><a class="btn btn-gold btn-sm" href="https://www.alpstay.eu" target="_blank" rel="noopener" style="text-decoration:none;"><span>Prenota</span></a></div>`;
     }
     document.getElementById('guestPerks').innerHTML=html;
@@ -1009,10 +1010,8 @@ Marco;Bianchi;marco.bianchi@email.com;+39 333 1112233;8</textarea>
     document.getElementById('joinEyebrow').textContent=joinRef?'Invito Clubcard':'Alpstay Club';
     document.getElementById('joinTitle').textContent=joinRef?'Ti hanno regalato una tessera Silver':'Diventa socio Alpstay Club';
     document.getElementById('joinPreviewHint').style.display=joinPreview?'block':'none';
-    const sp=[];
-    offers.filter(o=>o.attiva&&(o.target==='SILVER'||o.target==='TUTTI')).forEach(o=>{const v=offerValue(o);sp.push('<li>'+esc(o.titolo)+(v?' <span class="li-val">'+v+'</span>':'')+'</li>');});
-    promos.filter(p=>p.attiva&&(p.target==='SILVER'||p.target==='TUTTI')).forEach(p=>{sp.push('<li>'+esc(p.desc)+' <span class="li-promo">Promo</span></li>');});
-    document.getElementById('joinPerks').innerHTML=sp.join('')||'<li>Vantaggi riservati ai soci Alpstay.</li>';
+    const st=tiers.find(x=>x.key==='SILVER');
+    document.getElementById('joinPerks').innerHTML=((st&&st.benefits)||[]).slice(0,4).map(b=>`<li>${esc(b)}</li>`).join('')||'<li>Vantaggi riservati ai soci Alpstay.</li>';
     showScreen('screen-join');
   }
   function openInviteSignup(){openJoin((guestMember&&guestMember.num)||state.card,true);}
@@ -1062,18 +1061,9 @@ Marco;Bianchi;marco.bianchi@email.com;+39 333 1112233;8</textarea>
     {id:3,titolo:'Credito SPA di benvenuto',desc:'30 € di credito da spendere sui trattamenti della SPA durante il tuo soggiorno.',limit:'Da utilizzare in un\'unica soluzione entro il soggiorno. Non rimborsabile né convertibile in denaro. Prenotazione consigliata.',nota:'Inizia il soggiorno con un momento solo per te.',link:'https://alpstay.eu/spa',tipo:'Plus',target:'GOLD',vtipo:'IMPORTO',valore:30,dal:'2026-01-01',al:'2026-12-31',attiva:true},
     {id:4,titolo:'Degustazione vini',desc:'Percorso di degustazione guidato dal sommelier, con il 30% di sconto sulla selezione di vini.',limit:'Solo su prenotazione, posti limitati. Disponibile il venerdì sera.',nota:'',link:'https://alpstay.eu/eventi',tipo:'Promo',target:'GOLD',vtipo:'PERCENTUALE',valore:30,dal:'2026-06-01',al:'2026-09-30',attiva:true},
     {id:5,titolo:'Transfer privato dall\'aeroporto',desc:'Servizio transfer privato da e per gli aeroporti di Bolzano, Innsbruck o Verona.',limit:'Riservato ai soci Platinum. Su prenotazione con almeno 48 ore di anticipo. Una tratta inclusa per soggiorno.',nota:'Il viaggio inizia appena atterri.',link:'https://alpstay.eu/transfer',tipo:'Plus',target:'PLATINUM',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:6,titolo:'Concierge dedicato 24/7',desc:'Un concierge personale a tua disposizione, giorno e notte, per organizzare ogni dettaglio del soggiorno.',limit:'Servizio riservato ai soci Black. Alcune richieste possono prevedere costi esterni.',nota:'Qualunque cosa desideri, basta chiedere.',link:'https://alpstay.eu/black',tipo:'Plus',target:'BLACK',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:7,titolo:'Welcome drink all\'arrivo',desc:'Un drink di benvenuto al tuo arrivo, per iniziare il soggiorno con il piede giusto.',limit:'Una consumazione per ospite all\'arrivo, salvo disponibilità del bar.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'SILVER',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:8,titolo:'Late check-out alle 14:00',desc:'Goditi l\'ultima mattinata senza fretta: camera disponibile fino alle 14:00 nel giorno di partenza.',limit:'Soggetto a disponibilità. Da confermare alla reception il giorno prima.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'GOLD',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:9,titolo:'Accesso all\'area wellness',desc:'Ingresso incluso all\'area wellness e piscina per tutta la durata del soggiorno.',limit:'Secondo gli orari di apertura della struttura.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'GOLD',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:10,titolo:'Check-in prioritario e camera garantita',desc:'Accoglienza prioritaria all\'arrivo e camera sempre garantita anche in alta stagione.',limit:'Riservato ai soci Platinum, con prenotazione diretta.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'PLATINUM',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:11,titolo:'Esperienze su misura in montagna',desc:'Attività ed escursioni personalizzate sulle Dolomiti, organizzate dal nostro team.',limit:'Su richiesta, con preavviso. Eventuali costi esterni a parte.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'PLATINUM',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:12,titolo:'Tavolo riservato nei ristoranti',desc:'Il tuo tavolo preferito sempre pronto nei ristoranti delle strutture Alpstay.',limit:'Su prenotazione, secondo disponibilità del ristorante.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'PLATINUM',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:13,titolo:'Suite garantita e prezzi bloccati',desc:'Suite sempre garantita e tariffe bloccate per i tuoi soggiorni, senza sorprese.',limit:'Riservato ai soci Black, secondo condizioni dedicate.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'BLACK',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:14,titolo:'Chef privato e cene esclusive',desc:'Cene private con il nostro chef, pensate su misura per te e i tuoi ospiti.',limit:'Riservato ai soci Black. Su prenotazione, posti e date limitati.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'BLACK',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true},
-    {id:15,titolo:'Eventi e accessi riservati ai soci Black',desc:'Inviti a eventi esclusivi e accessi speciali riservati alla community Black.',limit:'Riservato ai soci Black. Su invito.',nota:'',img:'',link:'https://www.alpstay.eu',tipo:'Plus',target:'BLACK',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true}
+    {id:6,titolo:'Concierge dedicato 24/7',desc:'Un concierge personale a tua disposizione, giorno e notte, per organizzare ogni dettaglio del soggiorno.',limit:'Servizio riservato ai soci Black. Alcune richieste possono prevedere costi esterni.',nota:'Qualunque cosa desideri, basta chiedere.',link:'https://alpstay.eu/black',tipo:'Plus',target:'BLACK',vtipo:'NESSUNO',valore:0,dal:'2026-01-01',al:'2026-12-31',attiva:true}
   ];
-  let offerSeq=16;
+  let offerSeq=7;
   function svgImg(s){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);}
   function cover(d){return svgImg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf6ea"/><stop offset="1" stop-color="#efdfbb"/></linearGradient></defs><rect width="600" height="280" fill="url(#g)"/><g transform="translate(216,56) scale(7)" fill="none" stroke="#9a6f29" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+d+'</g></svg>');}
   offers[0].img=cover('<path d="M2 20l7-11 4 6 2-3 7 8z"/>');
@@ -1271,24 +1261,17 @@ Marco;Bianchi;marco.bianchi@email.com;+39 333 1112233;8</textarea>
   function askDeletePromo(id){const p=promos.find(x=>x.id===id);document.getElementById('confirmTitle').textContent='Elimina promo';document.getElementById('confirmText').innerHTML=`Eliminare definitivamente il codice "<b>${esc(p.codice)}</b>"?`;
     const btn=document.getElementById('confirmBtn');btn.textContent='Elimina';btn.onclick=()=>{promos=promos.filter(x=>x.id!==id);closeModal('confirmModal');renderPromos();toast('Promo eliminata.');};openModal('confirmModal');}
 
-  function tierItems(key){const ORDER=['SILVER','GOLD','PLATINUM','BLACK'];const i=ORDER.indexOf(key);let items=[];
-    if(i>0)items.push('<li class="inherit">Tutti i vantaggi '+livLabel(ORDER[i-1])+'</li>');
-    offers.filter(o=>o.attiva&&(o.target===key||(key==='SILVER'&&o.target==='TUTTI'))).forEach(o=>{const v=offerValue(o);items.push('<li>'+esc(o.titolo)+(v?' <span class="li-val">'+v+'</span>':'')+'</li>');});
-    promos.filter(p=>p.attiva&&(p.target===key||(key==='SILVER'&&p.target==='TUTTI'))).forEach(p=>{items.push('<li>'+esc(p.desc)+' <span class="li-promo">Promo</span></li>');});
-    return items;}
   function renderTiersEditor(){
-    document.getElementById('tiersEditor').innerHTML=tiers.map(t=>{const items=tierItems(t.key);return `<div class="tier-edit">
+    document.getElementById('tiersEditor').innerHTML=tiers.map(t=>`<div class="tier-edit">
       <div class="tier-edit-head"><span class="tag ${livClass(t.key)}">${livLabel(t.key)}</span></div>
       <div class="field box"><label>Tagline</label><input id="t_${t.key}_tag" value="${esc(t.tagline||'')}"></div>
       <div class="field box"><label>Come si raggiunge</label><input id="t_${t.key}_req" value="${esc(t.requisito||'')}"></div>
-      <div class="field box"><label>Vantaggi del livello — da «Offerte» e «Promo»</label>
-        <ul class="tier-benefits editor-perks">${items.join('')||'<li class="empty">Nessuna offerta o promo assegnata a questo livello. Aggiungile in «Offerte» o «Promo» con target '+esc(livLabel(t.key))+'.</li>'}</ul>
-      </div>
+      <div class="field box"><label>Benefit (uno per riga) — appaiono nelle schede dei livelli</label><textarea id="t_${t.key}_ben" rows="5">${esc((t.benefits||[]).join('\n'))}</textarea></div>
       <div class="field box" style="margin-bottom:0;"><label>Nota in evidenza (per rendere il livello più desiderabile)</label><input id="t_${t.key}_nota" value="${esc(t.nota||'')}"></div>
-    </div>`;}).join('');
+    </div>`).join('');
   }
   function saveTiers(){
-    tiers.forEach(t=>{t.tagline=document.getElementById('t_'+t.key+'_tag').value.trim();t.requisito=document.getElementById('t_'+t.key+'_req').value.trim();t.nota=document.getElementById('t_'+t.key+'_nota').value.trim();});
+    tiers.forEach(t=>{t.tagline=document.getElementById('t_'+t.key+'_tag').value.trim();t.requisito=document.getElementById('t_'+t.key+'_req').value.trim();t.benefits=document.getElementById('t_'+t.key+'_ben').value.split('\n').map(s=>s.trim()).filter(Boolean);t.nota=document.getElementById('t_'+t.key+'_nota').value.trim();});
     toast('Descrizioni dei livelli aggiornate.');
     if(typeof renderIntroTiers==='function')renderIntroTiers();
   }
@@ -1339,19 +1322,11 @@ Marco;Bianchi;marco.bianchi@email.com;+39 333 1112233;8</textarea>
   document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');}));
 
   function renderIntroTiers(){const box=document.getElementById('introTiers');if(!box)return;
-    const ORDER=['SILVER','GOLD','PLATINUM','BLACK'];
-    const ordered=ORDER.map(k=>tiers.find(t=>t.key===k)).filter(Boolean);
-    box.innerHTML=ordered.map(t=>{
-      const i=ORDER.indexOf(t.key);let items=[];
-      if(i>0)items.push('<li class="inherit">Tutti i vantaggi '+livLabel(ORDER[i-1])+'</li>');
-      offers.filter(o=>o.attiva&&(o.target===t.key||(t.key==='SILVER'&&o.target==='TUTTI'))).forEach(o=>{const v=offerValue(o);items.push('<li>'+esc(o.titolo)+(v?' <span class="li-val">'+v+'</span>':'')+'</li>');});
-      promos.filter(p=>p.attiva&&(p.target===t.key||(t.key==='SILVER'&&p.target==='TUTTI'))).forEach(p=>{items.push('<li>'+esc(p.desc)+' <span class="li-promo">Promo</span></li>');});
-      if(items.length===(i>0?1:0))items.push('<li>Nuovi vantaggi in arrivo per questo livello.</li>');
-      return `<div class="tier-card">
+    box.innerHTML=tiers.map(t=>{const benefits=(t.benefits||[]).map(b=>`<li>${esc(b)}</li>`).join('');return `<div class="tier-card">
       <div class="tier-card-head"><div class="nm"><span class="tag ${livClass(t.key)}">${livLabel(t.key)}</span></div></div>
       ${t.tagline?`<p class="tier-tag">${esc(t.tagline)}</p>`:''}
       ${t.requisito?`<p class="tier-req">${esc(t.requisito)}</p>`:''}
-      <ul class="tier-benefits">${items.join('')}</ul>
+      <ul class="tier-benefits">${benefits}</ul>
       ${t.nota?`<div class="tier-note"><span>${esc(t.nota)}</span></div>`:''}
     </div>`;}).join('');}
 
